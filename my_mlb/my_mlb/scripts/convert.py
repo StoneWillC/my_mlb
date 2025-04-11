@@ -361,6 +361,52 @@ def add_team_seasons():
     cursor.close()
     conn.close()
 
+def add_team_seasons():
+    """
+    Convert team data from the legacy database.
+    This function calls the stored procedure sp_getTeamSeasons,
+    then for each record, it creates or updates Team and TeamSeason
+    objects.
+    """
+    conn = connect_to_original_db()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Call stored procedure to retrieve team-season data.
+    cursor.callproc('sp_getTeamSeasons')
+    
+    for result in cursor.stored_results():
+        for row in result.fetchall():
+            team_code = row['teamID']
+            season = row['yearID']
+            wins = row['wins']
+            losses = row['losses']
+            team_name = row['teamName']
+            
+            # Get or create the Team. Use teamID as unique code.
+            team, created = Team.objects.get_or_create(
+                code=team_code,
+                defaults={'name': team_name}
+            )
+            # Update team name if necessary (to capture most recent name)
+            if not created and team.name != team_name:
+                team.name = team_name
+                team.save()
+            
+            # Create the TeamSeason instance.
+            team_season, ts_created = TeamSeason.objects.get_or_create(
+                team=team,
+                season=season,
+                defaults={'wins': wins, 'losses': losses}
+            )
+            if ts_created:
+                print(f"Created TeamSeason: {team.name} ({season})")
+            else:
+                print(f"TeamSeason already exists: {team.name} ({season})")
+    
+    cursor.close()
+    conn.close()
+
+
 if __name__ == "__main__":
     start_time = time.time()
 
