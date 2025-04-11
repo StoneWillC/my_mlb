@@ -102,3 +102,28 @@ class PitchingStats(models.Model):
     saves = models.IntegerField(null=True)
     class Meta:
         db_table = 'pitching_stats'
+
+class Team(models.Model):
+    team_id = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=10, unique=True)  # e.g., "NYA"
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "team"
+
+class TeamSeason(models.Model):
+    id = models.AutoField(primary_key=True)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='seasons')
+    season = models.IntegerField()
+    wins = models.IntegerField(null=True)
+    losses = models.IntegerField(null=True)
+
+    def __str__(self):
+        return f"{self.team.name} ({self.season})"
+
+    class Meta:
+        db_table = "team_season"
+        unique_together = ('team', 'season')
