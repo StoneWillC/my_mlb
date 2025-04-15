@@ -78,7 +78,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'mysql.connector.django',
         'NAME': 'finalproj',
-        'USER': 'user',
+        'USER': 'root',
         'PASSWORD': 'password',
         'HOST': 'localhost',
         'PORT': '3306',
@@ -86,7 +86,7 @@ DATABASES = {
     'mlb_original': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'mlb_original',
-        'USER': 'user',
+        'USER': 'root',
         'PASSWORD': 'password',
         'HOST': 'localhost',
         'PORT': '3306',
