@@ -12,28 +12,18 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'my_mlb.settings')
 django.setup()
 
-from mlb_data.models import (
-    Player, 
-    Position, 
-    PlayerSeason, 
-    BattingStats, 
-    FieldingStats, 
-    PitchingStats, 
-    CatchingStats, 
-    Team, 
-    TeamSeason
-)
+from mlb_data.models import Player, Position, PlayerSeason, Team, TeamSeason, BattingStats, FieldingStats, PitchingStats, CatchingStats
 
 def connect_to_original_db():
     return mysql.connector.connect(
         host="localhost",
-        user="root",
+        user="user",
         password="password",
         database="mlb_original"
     )
 
 def add_positions(players):
-    # Ensure all positions exist in the new database
+    # First, ensure all positions exist in the new database
     positions = {
         'P': 'Pitcher',
         'C': 'Catcher',
@@ -42,26 +32,28 @@ def add_positions(players):
         '3B': 'Third Base',
         'SS': 'Shortstop',
         'OF': 'Outfield',
-        'LF': 'Left Field',  # Not Used
-        'CF': 'Center Field',  # Not Used
-        'RF': 'Right Field',  # Not Used
-        'DH': 'Designated Hitter'  # Not Used
+        'LF': 'Left Field', # Not Used
+        'CF': 'Center Field', # Not Used
+        'RF': 'Right Field', # Not Used
+        'DH': 'Designated Hitter' # Not Used
     }
     
+    # Create all position objects if they don't exist
     for code in positions:
         Position.objects.get_or_create(position_code=code)
-    
-    # Connect to legacy database to assign positions to players
+
+    # Connect to original database
     conn = connect_to_original_db()
     cursor = conn.cursor(dictionary=True)
     
-    query = """
+    # Query to get positions for each player
+    cursor.execute("""
         SELECT DISTINCT playerID, POS 
         FROM fielding 
         WHERE playerID IN (%s)
-    """ % ','.join(['%s'] * len(players))
-    cursor.execute(query, list(players.keys()))
+    """ % ','.join(['%s'] * len(players)), list(players.keys()))
     
+    # Add positions to each player
     for row in cursor.fetchall():
         player = players[row['playerID']]
         try:
@@ -75,10 +67,12 @@ def add_positions(players):
     conn.close()
 
 def retrieve_players():
+    # Connect to original database
     conn = connect_to_original_db()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True)  # Returns results as dictionaries
     
     players = {}
+    # Query to get all players
     cursor.execute("""
         SELECT  playerId, 
                 nameFirst, 
@@ -100,30 +94,41 @@ def retrieve_players():
          FROM people
     """)
     
+    # Iterate through results and create Player instances
     for row in cursor.fetchall():
+        # Convert string dates to Python date objects, handling NULL values
         pid = row['playerId']
         first_name = row['nameFirst']
         last_name = row['nameLast']
-        if not pid or not first_name or not last_name:
+
+        # If the playerId or name is non-existant, skip.
+        if (pid is None or not pid or
+            first_name is None or not first_name or 
+            last_name is None or not last_name) :
             continue
         
-        if row['birthYear'] is None:
+        if (row['birthYear'] is None) : 
             continue
-        elif row['birthMonth'] is None or row['birthDay'] is None:
+        # Some players only have a birth year.
+        elif (row['birthMonth'] is None or row['birthDay'] is None) :
             birth_day = datetime(year=row['birthYear'], month=1, day=1)
         else:
-            birth_day = datetime(year=row['birthYear'], month=row['birthMonth'], day=row['birthDay'])
-        
-        if row['deathYear'] is None:
-            death_day = None
-        elif row['deathMonth'] is None or row['deathDay'] is None:
+            birth_day = datetime(year=row['birthYear'], 
+                             month=row['birthMonth'],
+                             day=row['birthDay'])
+
+        if (row['deathYear'] is None) :
+           death_day = None 
+        elif (row['deathMonth'] is None or row['deathDay'] is None) :
             death_day = datetime(year=row['deathYear'], month=1, day=1)
         else:
-            death_day = datetime(year=row['deathYear'], month=row['deathMonth'], day=row['deathDay'])
-        
+            death_day = datetime(year=row['deathYear'], 
+                             month=row['deathMonth'],
+                             day=row['deathDay'])
         first_game = datetime.strptime(row['debut'], '%Y-%m-%d').date() if row['debut'] else None
         last_game = datetime.strptime(row['finalGame'], '%Y-%m-%d').date() if row['finalGame'] else None
         
+        # Create new Player instance
         player = Player.objects.create(
             name=first_name + " " + last_name,
             given_name=row['nameGiven'],
@@ -143,30 +148,95 @@ def retrieve_players():
     cursor.close()
     conn.close()
 
+    # Add positions after creating players
     add_positions(players)
+
     return players
 
-def add_seasons(players):
+def retrieve_teams():
+    conn = connect_to_original_db()
+    cursor = conn.cursor(dictionary=True)  # Returns results as dictionaries
+    
+    teams = {}
+    # Query to get all players
+    cursor.execute("""
+        select teamID, yearFounded, yearLast,
+                (select r.name from teams r where r.teamID = t.teamID order by r.yearID desc limit 1) as name,
+                (select r.lgID from teams r where r.teamID = t.teamID order by r.yearID desc limit 1) as lgID
+        from (select teamID, min(yearID) as yearFounded, max(yearID) as yearLast from teams group by teamID) as t
+    """)
+    
+    # Iterate through results and create Team instances
+    for row in cursor.fetchall():
+        tid = row['teamID']
+
+    # Create new Team instance
+        team = Team.objects.create(
+            name=row['name'],
+            league=row['lgID'],
+            year_founded=row['yearFounded'],
+            year_last=row['yearLast']
+        )
+        teams[tid] = team
+        print(f"Created team: {team.name}")
+    
+    cursor.close()
+    conn.close()
+    return teams
+
+def add_team_seasons(teams):
+    conn = connect_to_original_db()
+    cursor = conn.cursor(dictionary=True)  # Returns results as dictionaries
+
+    # Query to get all team season information
+    cursor.execute("""
+        select teamID, yearID, G, L, W, teamRank, attendance
+        from teams
+    """)
+    
+    for row in cursor.fetchall():
+        tid = row['teamID']
+        yid = row['yearID']
+        t = teams[tid]
+        # No need to call ts.save() when using .create()
+        ts = TeamSeason.objects.create(
+            team=t,
+            year=yid,
+            games=row['G'],
+            wins=row['W'],
+            losses=row['L'],
+            rank=row['teamRank'],
+            total_attendance=row['attendance']
+        )
+        print(f"Created team-season: {tid}, {yid}")
+
+    cursor.close()
+    conn.close()
+
+def add_seasons(players, teams):
     conn = connect_to_original_db()
     cursor = conn.cursor(dictionary=True)
-    
+
+    # Combined query to get games played and salary data in one go
     cursor.execute("""
         SELECT b.playerID, b.yearID, b.teamID, b.lgID,
                SUM(b.G) as gamesPlayed,
                SUM(s.salary) as totalSalary
         FROM batting b
-        LEFT JOIN salaries s ON b.playerID = s.playerID AND b.yearID = s.yearID
+        LEFT JOIN salaries s ON b.playerID = s.playerID 
+            AND b.yearID = s.yearID
         GROUP BY b.playerID, b.yearID, b.teamID, b.lgID
     """)
     
     for row in cursor.fetchall():
         pid = row['playerID']
         yid = row['yearID']
-        
+        tid = row['teamID']
+
         p = players.get(pid)
         if p is None:
             continue
-        
+
         ps = p.seasons.filter(year=yid).first()
         if ps is None:
             ps = PlayerSeason.objects.create(
@@ -177,36 +247,44 @@ def add_seasons(players):
             )
         else:
             ps.games_played += row['gamesPlayed']
-            if row['totalSalary']:
-                ps.salary += row['totalSalary']
+            if row['totalSalary']:  # Only update salary if it exists
+                ps.salary += row['totalSalary'] 
             ps.save()
         print(f"Created player-season: {pid}, {yid}")
+
+        t = teams.get(tid)
+        if t:
+            ts = t.seasons.filter(year=yid).first()
+            if ts:
+                ts.players.add(p)
+                print(f"Added {p.name} to {t.name}'s {yid} season")
 
     cursor.close()
     conn.close()
 
 def add_batting_stats(players):
     conn = connect_to_original_db()
-    cursor = conn.cursor(dictionary=True)
-    
+    cursor = conn.cursor(dictionary=True)  # Returns results as dictionaries
+
+    # Query to get discover info each player season
     cursor.execute("""
-        SELECT playerID, yearID,
-               SUM(AB) as atBats, 
-               SUM(H) as hits, 
-               SUM(2B) as doubles,
-               SUM(3B) as triples, 
-               SUM(HR) as homeRuns,
-               SUM(RBI) as runsBattedIn, 
-               SUM(SO) as strikeouts,
-               SUM(BB) as walks, 
-               SUM(HBP) as hitByPitch, 
-               SUM(IBB) as intentionalWalks, 
-               SUM(SB) as steals, 
-               SUM(CS) as stealsAttempted
-        FROM batting
-        GROUP BY playerID, yearID
+        select playerID, yearID,
+        sum(AB) as atBats, 
+        sum(H) as hits, 
+        sum(2B) as doubles,
+        sum(3B) as triples, 
+        sum(HR) as homeRuns,
+        sum(RBI) as runsBattedIn, 
+        sum(SO) as strikeouts,
+        sum(BB) as walks, 
+        sum(HBP) as hitByPitch, 
+        sum(IBB) as intentionalWalks, 
+        sum(SB) as steals, 
+        sum(CS) as stealsAttempted
+        from batting
+        group by playerID, yearID
     """)
-    
+
     for row in cursor.fetchall():
         pid = row['playerID']
         yid = row['yearID']
@@ -231,14 +309,15 @@ def add_batting_stats(players):
                 steals_attempted=row['stealsAttempted']
             )
             print(f"Added batting stats to {p.name}'s {yid} season")
-    
+
     cursor.close()
     conn.close()
 
 def add_fielding_stats(players):
     conn = connect_to_original_db()
     cursor = conn.cursor(dictionary=True)
-    
+
+    # Combined query for both fielding and catching stats
     cursor.execute("""
         SELECT playerID, yearID,
                SUM(E) as errors,
@@ -251,7 +330,7 @@ def add_fielding_stats(players):
         FROM fielding
         GROUP BY playerID, yearID
     """)
-    
+
     for row in cursor.fetchall():
         pid = row['playerID']
         yid = row['yearID']
@@ -261,13 +340,15 @@ def add_fielding_stats(players):
         
         ps = p.seasons.filter(year=yid).first()
         if ps is not None:
+            # Create fielding stats for all players
             FieldingStats.objects.create(
                 player_season=ps,
                 errors=row['errors'],
                 put_outs=row['putOuts']
             )
             print(f"Added fielding stats to {p.name}'s {yid} season")
-    
+
+            # Create catching stats only if they played as catcher
             if row['isCatcher']:
                 CatchingStats.objects.create(
                     player_season=ps,
@@ -277,31 +358,32 @@ def add_fielding_stats(players):
                     steals_caught=row['stealsCaught']
                 )
                 print(f"Added catching stats to {p.name}'s {yid} season")
-    
+
     cursor.close()
     conn.close()
 
 def add_pitching_stats(players):
     conn = connect_to_original_db()
     cursor = conn.cursor(dictionary=True)
-    
+
+    # Query to get discover info each player season
     cursor.execute("""
-        SELECT playerID, yearID,
-               SUM(IPOuts) as outsPitched,
-               SUM(ER) as earnedRunsAllowed, 
-               SUM(HR) as homeRunsAllowed, 
-               SUM(SO) as strikeouts, 
-               SUM(BB) as walks, 
-               SUM(W) as wins, 
-               SUM(L) as losses, 
-               SUM(WP) as wildPitches, 
-               SUM(BFP) as battersFaced, 
-               SUM(HBP) as hitBatters, 
-               SUM(SV) as saves
-        FROM pitching 
-        GROUP BY playerID, yearID
+        select playerID, yearID,
+                sum(IPOuts) as outsPitched,
+                sum(ER) as earnedRunsAllowed, 
+                sum(HR) as homeRunsAllowed, 
+                sum(SO) as strikeouts, 
+                sum(BB) as walks, 
+                sum(W) as wins, 
+                sum(L) as losses, 
+                sum(WP) as wildPitches, 
+                sum(BFP) as battersFaced, 
+                sum(HBP) as hitBatters, 
+                sum(SV) as saves
+        from pitching 
+        group by playerID, yearID
     """)
-    
+
     for row in cursor.fetchall():
         pid = row['playerID']
         yid = row['yearID']
@@ -325,76 +407,23 @@ def add_pitching_stats(players):
                 saves=row['saves']
             )
             print(f"Added pitching stats to {p.name}'s {yid} season")
-    
+
     cursor.close()
     conn.close()
 
-###############################
-# Begin New Team Conversion Code
-###############################
-def add_team_seasons():
-    """
-    Convert team data from the legacy database using a stored procedure.
-    This function calls sp_getTeamSeasons from mlb_original, which returns,
-    per team, the most recent record (by yearID) containing:
-        teamID, yearID, wins, losses, and teamName.
-    It then creates or updates Team and TeamSeason objects.
-    """
-    conn = connect_to_original_db()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Call the stored procedure to retrieve the most recent team record per team.
-    cursor.callproc('sp_getTeamSeasons')
-    
-    for result in cursor.stored_results():
-        for row in result.fetchall():
-            team_code = row['teamID']
-            season = row['yearID']
-            wins = row['wins']
-            losses = row['losses']
-            team_name = row['teamName']
-            
-            # Retrieve or create the Team. Use teamID as unique code.
-            team, created = Team.objects.get_or_create(
-                code=team_code,
-                defaults={'name': team_name}
-            )
-            # If team exists but the name is different (i.e., a newer name is present), update it.
-            if not created and team.name != team_name:
-                team.name = team_name
-                team.save()
-            
-            # Create or get the TeamSeason object.
-            team_season, ts_created = TeamSeason.objects.get_or_create(
-                team=team,
-                season=season,
-                defaults={'wins': wins, 'losses': losses}
-            )
-            if ts_created:
-                print(f"Created TeamSeason: {team.name} ({season})")
-            else:
-                print(f"TeamSeason already exists: {team.name} ({season})")
-    
-    cursor.close()
-    conn.close()
-###############################
-# End New Team Conversion Code
-###############################
-
-# Main function: run all conversion functions.
+# Main function
 if __name__ == "__main__":
     start_time = time.time()
 
     players = retrieve_players()
-    add_seasons(players)
+    teams = retrieve_teams()
+    add_team_seasons(teams)
+    add_seasons(players, teams)
     add_batting_stats(players)
     add_fielding_stats(players)
     add_pitching_stats(players)
-    
-    # NEW: Convert team data using the stored procedure.
-    add_team_seasons()
-    
+    # persist all the objects
+
     end_time = time.time()
     duration = end_time - start_time
     print(f"Conversion took {duration:.2f} seconds")
-
