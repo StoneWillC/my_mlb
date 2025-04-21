@@ -20,6 +20,7 @@ class Player(models.Model):
     last_game = models.DateField(null=True)
 
     positions = models.ManyToManyField('Position')
+    team_seasons = models.ManyToManyField('TeamSeason', related_name='players')
     class Meta:
         db_table = "player"
         unique_together = ('name', 'birthdate')
@@ -102,28 +103,31 @@ class PitchingStats(models.Model):
     saves = models.IntegerField(null=True)
     class Meta:
         db_table = 'pitching_stats'
-
+    
 class Team(models.Model):
     team_id = models.AutoField(primary_key=True)
-    code = models.CharField(max_length=10, unique=True)  # e.g., "NYA"
     name = models.CharField(max_length=50)
-
-    def __str__(self):
-        return self.name
-
+    league = models.CharField(max_length=20)
+    year_founded = models.IntegerField()
+    year_last = models.IntegerField()
+#   The foreign key from TS (the many side) is the only way for specifying
+#   a one-to-many relationship. "OneToManyField" doesn't exist.
+#   seasons = models.OneToManyField('TeamSeason')  
     class Meta:
-        db_table = "team"
+        db_table = 'team'
 
 class TeamSeason(models.Model):
-    id = models.AutoField(primary_key=True)
+    team_season_id = models.AutoField(primary_key=True)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='seasons')
-    season = models.IntegerField()
+    year = models.IntegerField()
+    
+    games = models.IntegerField(null=True)
     wins = models.IntegerField(null=True)
     losses = models.IntegerField(null=True)
-
-    def __str__(self):
-        return f"{self.team.name} ({self.season})"
-
+    rank = models.IntegerField(null=True)
+    total_attendance = models.IntegerField(null=True)
+    #This is not necessary.
+    #players = models.ManyToManyField(Player, related_name='team_seasons')
     class Meta:
-        db_table = "team_season"
-        unique_together = ('team', 'season')
+        db_table = 'team_season'
+        unique_together = ('team', 'year')
