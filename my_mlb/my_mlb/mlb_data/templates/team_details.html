@@ -1,21 +1,35 @@
 <!DOCTYPE html>
 <html>
-  <head><title>{{ team.name }} Details</title></head>
-  <body>
-    <h1>Team Details - {{ team.name }}</h1>
-    <h2>Seasons</h2>
-    <table border="1">
-      <tr><th>Year</th><th>Wins</th><th>Losses</th><th>Roster</th></tr>
-      {% for ts in seasons %}
-      <tr>
-        <td>{{ ts.year}}</td>
-        <td>{{ ts.wins }}</td>
-        <td>{{ ts.losses }}</td>
-        <td><a href="{% url 'team_roster' team.pk %}?year={{ ts.year }}">View Roster</a></td>
-      </tr>
-      {% endfor %}
-    </table>
-    <br/>
-    <a href="{% url 'team_search' %}">Back to Team Search</a>
-  </body>
+<head>
+  <title>{{ team.name }} – Seasons</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .breadcrumb a { color: #0066cc; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    tr:nth-child(even) { background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <p class="breadcrumb">
+    <a href="{% url 'mlb_data' %}">Home</a> ›
+    <a href="{% url 'team_search' %}">Team Search</a> ›
+    {{ team.name }}
+  </p>
+
+  <h1>{{ team.name }} – Seasons</h1>
+  <table>
+    <tr><th>Year</th><th>Wins</th><th>Losses</th><th>Roster</th></tr>
+    {% for ts in seasons %}
+    <tr>
+      <td>{{ ts.year }}</td>
+      <td>{{ ts.wins }}</td>
+      <td>{{ ts.losses }}</td>
+      <td>
+        <a href="{% url 'team_roster' team.pk %}?year={{ ts.year }}">View Roster</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
 </html>
