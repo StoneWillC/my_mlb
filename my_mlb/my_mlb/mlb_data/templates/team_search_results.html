@@ -1,18 +1,31 @@
 <!DOCTYPE html>
 <html>
-  <head><title>Team Search Results</title></head>
-  <body>
-    <h1>Team Search Results</h1>
-    <p>Search results for "{{ q_name }}"</p>
-    <table border="1">
-      <tr><th>Team ID</th><th>Name</th></tr>
-      {% for team in teams %}
-      <tr>
-        <td>{{ team.code }}</td>
-        <td><a href="{% url 'team_details' team.pk %}">{{ team.name }}</a></td>
-      </tr>
-      {% endfor %}
-    </table>
-    <br/><a href="{% url 'team_search' %}">Back to Team Search</a>
-  </body>
+<head>
+  <title>MLB – Team Search Results</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .breadcrumb a { color: #0066cc; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    tr:nth-child(even) { background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <p class="breadcrumb">
+    <a href="{% url 'mlb_data' %}">Home</a> ›
+    <a href="{% url 'team_search' %}">Team Search</a> ›
+    Results
+  </p>
+
+  <h1>Search Results for “{{ q_name }}”</h1>
+  <table>
+    <tr><th>Code</th><th>Name</th></tr>
+    {% for team in teams %}
+    <tr>
+      <td>{{ team.code }}</td>
+      <td><a href="{% url 'team_details' team.pk %}">{{ team.name }}</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
 </html>
