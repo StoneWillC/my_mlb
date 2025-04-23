@@ -2,52 +2,44 @@ from django.http import HttpResponse
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Player, Team, TeamSeason
-# Create your views here.
-# Home page - Select team or player search
+from .models import Player, Team, TeamSeason, PlayerSeason
+
 def mlb_data(request):
     template = loader.get_template('index.html')
-    return HttpResponse(template.render())
+    return HttpResponse(template.render({}, request))
 
-# Player search page
 @csrf_exempt
 def player_search(request):
     template = loader.get_template('player_search.html')
-    return HttpResponse(template.render())
+    return HttpResponse(template.render({}, request))
 
-# Player search results page
 @csrf_exempt
-def player_search_results(request): 
+def player_search_results(request):
     q_name = request.POST.get('q_name')
-    if q_name:
-        players = Player.objects.filter(name__icontains=q_name)
-    else:
-        players = []
+    players = Player.objects.filter(name__icontains=q_name) if q_name else []
+    context = {'players': players, 'q_name': q_name}
     template = loader.get_template('player_search_results.html')
-    context = {
-        'players': players,
-        'q_name': q_name
-    }
     return HttpResponse(template.render(context, request))
 
-# Player details page
 @csrf_exempt
 def player_details(request, player_id):
     player = Player.objects.get(player_id=player_id)
-    template = loader.get_template('player_details.html')
+    player_seasons = player.seasons.all()
+    # for displaying team links
+    team_seasons = TeamSeason.objects.all()
     context = {
         'player': player,
-        'player_seasons': player.seasons.all()
+        'player_seasons': player_seasons,
+        'team_seasons': team_seasons,
     }
+    template = loader.get_template('player_details.html')
     return HttpResponse(template.render(context, request))
 
-# # Team search page
 @csrf_exempt
 def team_search(request):
     template = loader.get_template('team_search.html')
-    return HttpResponse(template.render())
+    return HttpResponse(template.render({}, request))
 
-# # Team search results page
 @csrf_exempt
 def team_search_results(request):
     q_name = request.POST.get('q_name')
@@ -56,25 +48,20 @@ def team_search_results(request):
     template = loader.get_template('team_search_results.html')
     return HttpResponse(template.render(context, request))
 
-# # Team details page
 def team_details(request, team_id):
     team = Team.objects.get(pk=team_id)
     seasons = team.seasons.all().order_by('-year')
-    template = loader.get_template('team_details.html')
     context = {'team': team, 'seasons': seasons}
+    template = loader.get_template('team_details.html')
     return HttpResponse(template.render(context, request))
 
-# # Team roster page
 def team_roster(request, team_id):
-    year = request.GET.get('year')
     team = Team.objects.get(pk=team_id)
+    year = request.GET.get('year')
+    roster = []
     if year:
-        roster = []
-        # Find all players in that season by matching PlayerSeason.year
-        from .models import PlayerSeason
-        roster = PlayerSeason.objects.filter(year=year)
-    else:
-        roster = []
-    template = loader.get_template('team_roster.html')
+        # assumes you have a relation from PlayerSeason -> TeamSeason through some model
+        roster = PlayerSeason.objects.filter(year=year, teamseason__team=team)
     context = {'team': team, 'year': year, 'roster': roster}
+    template = loader.get_template('team_roster.html')
     return HttpResponse(template.render(context, request))
