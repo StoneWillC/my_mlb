@@ -107,7 +107,7 @@ class PitchingStats(models.Model):
 class Team(models.Model):
     team_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50)
-    league = models.CharField(max_length=20)
+    league = models.CharField(max_length=20, null = True)
     year_founded = models.IntegerField()
     year_last = models.IntegerField()
 #   The foreign key from TS (the many side) is the only way for specifying

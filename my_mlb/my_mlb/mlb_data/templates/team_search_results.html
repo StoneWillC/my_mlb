@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head><title>Team Search Results</title></head>
+  <body>
+    <h1>Team Search Results</h1>
+    <p>Search results for "{{ q_name }}"</p>
+    <table border="1">
+      <tr><th>Team ID</th><th>Name</th></tr>
+      {% for team in teams %}
+      <tr>
+        <td>{{ team.code }}</td>
+        <td><a href="{% url 'team_details' team.pk %}">{{ team.name }}</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+    <br/><a href="{% url 'team_search' %}">Back to Team Search</a>
+  </body>
+</html>

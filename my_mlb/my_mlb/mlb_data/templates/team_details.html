@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head><title>{{ team.name }} Details</title></head>
+  <body>
+    <h1>Team Details - {{ team.name }}</h1>
+    <h2>Seasons</h2>
+    <table border="1">
+      <tr><th>Year</th><th>Wins</th><th>Losses</th><th>Roster</th></tr>
+      {% for ts in seasons %}
+      <tr>
+        <td>{{ ts.year}}</td>
+        <td>{{ ts.wins }}</td>
+        <td>{{ ts.losses }}</td>
+        <td><a href="{% url 'team_roster' team.pk %}?year={{ ts.year }}">View Roster</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+    <br/>
+    <a href="{% url 'team_search' %}">Back to Team Search</a>
+  </body>
+</html>
