@@ -1,13 +1,21 @@
 <!DOCTYPE html>
-{% load static %}
 <html>
-    <title>MLB Data</title>
-    <body>
-        <h1 align="center">CU CS-3610 MLB Data</h1>
-        <p align="center">
-        <img src="{% static 'mlb_data/images/mlb-logo.jpg' %}" alt="MLB Logo">
-        <br/>
-        <a href="{% url 'player_search' %}">Player Search</a> <br/>
-	<a href="{% url 'team_search' %}">Team Search</a> <br/>
-    </body>
+<head>
+  <title>CU CS-3610 MLB Data</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    a { color: #0066cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1 align="center">CU CS-3610 MLB Data</h1>
+  <p align="center">
+    <img src="{% static 'mlb_data/images/mlb-logo.jpg' %}" alt="MLB Logo">
+  </p>
+  <p align="center">
+    <a href="{% url 'player_search' %}">Player Search</a><br/>
+    <a href="{% url 'team_search' %}">Team Search</a>
+  </p>
+</body>
 </html>
