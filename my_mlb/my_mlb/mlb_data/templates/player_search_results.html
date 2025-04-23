@@ -1,27 +1,38 @@
 <!DOCTYPE html>
 <html>
-    <title>MLB Data - Player Search Results</title>
-    <body>
-        <h1>MLB - Player Search Results</h1>
-        <p>Search results for "{{ q_name }}"</p>
-        <table border="1">
-            <tr>
-                <th>Player ID</th>
-                <th>Name</th>
-                <th>First Game</th>
-                <th>Last Game</th>
-            </tr>
-            {% for player in players %}
-                <tr>
-                    <td>{{ player.player_id }}</td>
-                    <td><a href="{% url 'player_details' player.player_id %}">{{ player.name }}</a></td>
-                    <td>{{ player.first_game }}</td>
-                    <td>{{ player.last_game }}</td>
-                </tr>
-            {% endfor %}
-        </table>
-        <br/>
-        <a href="{% url 'player_search' %}">Back to Player Search</a> <br/>
-        <a href="{% url 'mlb_data' %}">Back to Home</a>
-    </body>
+<head>
+  <title>MLB – Player Search Results</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .breadcrumb a { color: #0066cc; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    tr:nth-child(even) { background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <p class="breadcrumb">
+    <a href="{% url 'mlb_data' %}">Home</a> ›
+    <a href="{% url 'player_search' %}">Player Search</a> ›
+    Results
+  </p>
+
+  <h1>Search Results for “{{ q_name }}”</h1>
+  <table>
+    <tr>
+      <th>Player ID</th><th>Name</th><th>First Game</th><th>Last Game</th>
+    </tr>
+    {% for player in players %}
+    <tr>
+      <td>{{ player.player_id }}</td>
+      <td><a href="{% url 'player_details' player.player_id %}">
+            {{ player.name }}
+          </a>
+      </td>
+      <td>{{ player.first_game|date:"F j, Y" }}</td>
+      <td>{{ player.last_game|date:"F j, Y" }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
 </html>
