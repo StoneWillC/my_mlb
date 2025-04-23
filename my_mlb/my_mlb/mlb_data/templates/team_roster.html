@@ -1,18 +1,37 @@
 <!DOCTYPE html>
 <html>
-  <head><title>{{ team.name }} Roster {{ year }}</title></head>
-  <body>
-    <h1>Roster for {{ team.name }} ({{ year }})</h1>
-    <table border="1">
-      <tr><th>Player</th><th>Games Played</th><th>Salary</th></tr>
-      {% for ps in roster %}
-      <tr>
-        <td><a href="{% url 'player_details' ps.player.pk %}">{{ ps.player.name }}</a></td>
-        <td>{{ ps.games_played }}</td>
-        <td>${{ ps.salary }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-    <br/><a href="{% url 'team_details' team.pk %}">Back to Team Details</a>
-  </body>
+<head>
+  <title>{{ team.name }} Roster – {{ year }}</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .breadcrumb a { color: #0066cc; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    tr:nth-child(even) { background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <p class="breadcrumb">
+    <a href="{% url 'mlb_data' %}">Home</a> ›
+    <a href="{% url 'team_search' %}">Team Search</a> ›
+    <a href="{% url 'team_details' team.pk %}">{{ team.name }}</a> ›
+    Roster ({{ year }})
+  </p>
+
+  <h1>{{ team.name }} Roster – {{ year }}</h1>
+  <table>
+    <tr><th>Player</th><th>Games</th><th>Salary</th></tr>
+    {% for ps in roster %}
+    <tr>
+      <td>
+        <a href="{% url 'player_details' ps.player.player_id %}">
+          {{ ps.player.name }}
+        </a>
+      </td>
+      <td>{{ ps.games_played }}</td>
+      <td>${{ ps.salary }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
 </html>
