@@ -1,14 +1,24 @@
 <!DOCTYPE html>
 <html>
-  <head><title>Team Search</title></head>
-  <body>
-    <h1>MLB - Team Search</h1>
-    <form action="{% url 'team_search_results' %}" method="post">
-      {% csrf_token %}
-      <input type="text" name="q_name" placeholder="Team Name" />
-      <input type="submit" value="Search" />
-    </form>
-    <br/>
-    <a href="{% url 'mlb_data' %}">Back to Home</a>
-  </body>
+<head>
+  <title>MLB – Team Search</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .breadcrumb a { color: #0066cc; }
+    form input[type="text"] { padding: 5px; width: 200px; }
+    form input[type="submit"] { padding: 5px 10px; }
+  </style>
+</head>
+<body>
+  <p class="breadcrumb">
+    <a href="{% url 'mlb_data' %}">Home</a> › Team Search
+  </p>
+
+  <h1>MLB – Team Search</h1>
+  <form action="{% url 'team_search_results' %}" method="post">
+    {% csrf_token %}
+    <input type="text" name="q_name" placeholder="Team Name">
+    <input type="submit" value="Search">
+  </form>
+</body>
 </html>
