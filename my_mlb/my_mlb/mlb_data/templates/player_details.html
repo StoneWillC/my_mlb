@@ -1,11 +1,14 @@
 <!DOCTYPE html>
+{% load static %}
 {% load filters %}
+
 <html>
 <head>
-  <title>MLB Player Details – {{ player.name }}</title>
+  <title>MLB Player Details - {{ player.name }}</title>
   <style>
     body { font-family: sans-serif; margin: 20px; }
-    .breadcrumb a { color: #0066cc; }
+    .breadcrumb a { color: #0066cc; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
     table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     .stats-table tr:nth-child(even) { background: #f9f9f9; }
@@ -15,15 +18,16 @@
   </style>
 </head>
 <body>
+  <!-- Breadcrumb -->
   <p class="breadcrumb">
     <a href="{% url 'mlb_data' %}">Home</a> ›
     <a href="{% url 'player_search' %}">Player Search</a> ›
     {{ player.name }}
   </p>
 
-  <h1>MLB Player Details – {{ player.name }}</h1>
+  <h1>MLB Player Details - {{ player.name }}</h1>
 
-  <!-- Bio -->
+  <!-- Bio Table -->
   <table>
     <tr>
       <th>Name</th><th>Given Name</th><th>Birthdate</th>
@@ -38,7 +42,7 @@
     </tr>
   </table>
 
-  <!-- Positions / Hands -->
+  <!-- Positions & Hands -->
   <table>
     <tr>
       <th>Positions</th><th>Batting Hand</th>
@@ -57,7 +61,7 @@
     </tr>
   </table>
 
-  <!-- Stats -->
+  <!-- Season Stats -->
   <table class="stats-table">
     <tr>
       <th>Year</th><th>Games Played</th><th>Salary</th>
@@ -70,7 +74,11 @@
       <td>{{ ps.games_played }}</td>
       <td>${{ ps.salary }}</td>
       <td>
-        {{ team_seasons|filter_team_seasons:ps.year }}
+        {% for team in teams_by_year|get_item:ps.year %}
+          <a href="{% url 'team_details' team.team_id %}">{{ team.name }}</a>{% if not forloop.last %}, {% endif %}
+        {% empty %}
+          —
+        {% endfor %}
       </td>
       <td>{{ ps.batting_stats.hits }}</td>
       <td>{{ ps.batting_stats.at_bats }}</td>
@@ -86,3 +94,4 @@
   </p>
 </body>
 </html>
+

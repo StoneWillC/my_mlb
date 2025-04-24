@@ -25,12 +25,17 @@ def player_search_results(request):
 def player_details(request, player_id):
     player = Player.objects.get(player_id=player_id)
     player_seasons = player.seasons.all()
-    # for displaying team links
-    team_seasons = TeamSeason.objects.all()
+
+    # Build a mapping: season_year -> list of Team objects that this player played for
+    teams_by_year = {}
+    # Assumes TeamSeason has a ManyToMany to Player (or through a join) named "players"
+    for ts in TeamSeason.objects.filter(players=player):
+        teams_by_year.setdefault(ts.year, []).append(ts.team)
+
     context = {
         'player': player,
         'player_seasons': player_seasons,
-        'team_seasons': team_seasons,
+        'teams_by_year': teams_by_year,
     }
     template = loader.get_template('player_details.html')
     return HttpResponse(template.render(context, request))
@@ -60,8 +65,8 @@ def team_roster(request, team_id):
     year = request.GET.get('year')
     roster = []
     if year:
-        # assumes you have a relation from PlayerSeason -> TeamSeason through some model
         roster = PlayerSeason.objects.filter(year=year, teamseason__team=team)
     context = {'team': team, 'year': year, 'roster': roster}
     template = loader.get_template('team_roster.html')
     return HttpResponse(template.render(context, request))
+

@@ -33,3 +33,10 @@ def total_salary(players, year):
         if player_season and player_season.salary:
             total += player_season.salary
     return total
+
+@register.filter
+def get_item(dictionary, key):
+    """
+    Look uip dictionary[key] in a template.
+    """
+    return dictionary.get(key, [])
