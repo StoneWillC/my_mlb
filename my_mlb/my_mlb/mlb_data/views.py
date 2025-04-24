@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
 
 from .models import Player, Team, TeamSeason, PlayerSeason
 
@@ -61,12 +62,20 @@ def team_details(request, team_id):
     return HttpResponse(template.render(context, request))
 
 def team_roster(request, team_id):
-    team = Team.objects.get(pk=team_id)
     year = request.GET.get('year')
-    roster = []
-    if year:
-        roster = PlayerSeason.objects.filter(year=year, teamseason__team=team)
-    context = {'team': team, 'year': year, 'roster': roster}
-    template = loader.get_template('team_roster.html')
-    return HttpResponse(template.render(context, request))
+    team = Team.objects.get(pk=team_id)
+    team_season = team.seasons.filter(year=year).first()
+
+    if not team_season:
+        return render(request, 'error.html', {'message': 'Team season not found.'})
+
+    players = team_season.players.all()
+
+    player_seasons = PlayerSeason.objects.filter(player__in=players, year=year)
+
+    return render(request, 'team_roster.html', {
+        'team': team,
+        'year': year,
+        'player_seasons': player_seasons
+    })
 

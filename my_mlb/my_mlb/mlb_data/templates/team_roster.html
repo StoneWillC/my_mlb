@@ -19,6 +19,8 @@
   </p>
 
   <h1>{{ team.name }} Roster – {{ year }}</h1>
+
+  {% if roster %}
   <table>
     <tr><th>Player</th><th>Games</th><th>Salary</th></tr>
     {% for ps in roster %}
@@ -29,9 +31,20 @@
         </a>
       </td>
       <td>{{ ps.games_played }}</td>
-      <td>${{ ps.salary }}</td>
+      <td>
+        {% if ps.salary %}
+          ${{ ps.salary|floatformat:2 }}
+        {% else %}
+          —
+        {% endif %}
+      </td>
     </tr>
     {% endfor %}
   </table>
+  {% else %}
+    <p>No roster data found for {{ year }}.</p>
+  {% endif %}
+
 </body>
 </html>
+

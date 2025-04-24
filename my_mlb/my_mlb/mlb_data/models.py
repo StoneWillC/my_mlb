@@ -107,9 +107,9 @@ class PitchingStats(models.Model):
 class Team(models.Model):
     team_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50)
-    league = models.CharField(max_length=20)
-    year_founded = models.IntegerField()
-    year_last = models.IntegerField()
+    league = models.CharField(max_length=20, null=True)
+    year_founded = models.IntegerField(null=True)
+    year_last = models.IntegerField(null=True)
 #   The foreign key from TS (the many side) is the only way for specifying
 #   a one-to-many relationship. "OneToManyField" doesn't exist.
 #   seasons = models.OneToManyField('TeamSeason')  
@@ -120,7 +120,6 @@ class TeamSeason(models.Model):
     team_season_id = models.AutoField(primary_key=True)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='seasons')
     year = models.IntegerField()
-    
     games = models.IntegerField(null=True)
     wins = models.IntegerField(null=True)
     losses = models.IntegerField(null=True)
