@@ -17,7 +17,7 @@ from mlb_data.models import Player, Position, PlayerSeason, Team, TeamSeason, Ba
 def connect_to_original_db():
     return mysql.connector.connect(
         host="localhost",
-        user="root",
+        user="dude",
         password="password",
         database="mlb_original"
     )
